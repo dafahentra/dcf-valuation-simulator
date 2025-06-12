@@ -14,7 +14,7 @@ A Monte Carlo simulation tool for enterprise valuation using discounted cash flo
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/dcf-valuation-simulator.git
+git clone https://github.com/dafahentra/dcf-valuation-simulator.git
 cd dcf-valuation-simulator
 ```
 
