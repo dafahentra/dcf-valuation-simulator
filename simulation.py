@@ -5,8 +5,32 @@ import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
+
 # Set page configuration
 st.set_page_config(page_title="Business Valuation", layout="wide")
+
+def create_preview_card():
+    st.markdown("""
+    <div style="
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 2rem;
+        border-radius: 10px;
+        color: white;
+        text-align: center;
+        margin-bottom: 2rem;
+    ">
+        <h1 style="margin: 0;">Business Valuation Dashboard</h1>
+        <p style="font-size: 1.2rem;">Monte Carlo Simulation & Sensitivity Analysis</p>
+        <div style="margin-top: 1rem;">
+            <span style="background: rgba(255,255,255,0.2); padding: 0.5rem 1rem; border-radius: 20px; margin: 0 0.5rem;">
+                📊 10,000+ Simulations
+            </span>
+            <span style="background: rgba(255,255,255,0.2); padding: 0.5rem 1rem; border-radius: 20px; margin: 0 0.5rem;">
+                🔍 Real-time Analysis
+            </span>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 
 # Function to calculate enterprise value
 def s_ent_function(srevenue_0=100, sassets_0=80, swacc=0.12, sassets_to=1.3,
