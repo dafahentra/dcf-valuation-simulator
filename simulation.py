@@ -55,7 +55,7 @@ def s_ent_function(srevenue_0=100, sassets_0=80, swacc=0.12, sassets_to=1.3,
     return ent_value
 
 # Streamlit app
-st.title("🏢 Business Valuation Dashboard")
+st.title("Business Valuation Dashboard")
 st.markdown("### Monte Carlo Simulation & Sensitivity Analysis")
 
 # Sidebar for inputs
@@ -182,7 +182,7 @@ if st.sidebar.button("Run Simulation", type="primary"):
 
 # Sensitivity Analysis Section
 st.markdown("---")
-st.header("📊 Sensitivity Analysis")
+st.header("Sensitivity Analysis")
 
 col3, col4 = st.columns(2)
 
@@ -280,26 +280,10 @@ if st.button("Run Sensitivity Analysis", type="secondary"):
     
     st.plotly_chart(fig_3d, use_container_width=True)
 
-# Information section
-st.markdown("---")
-st.info("""
-### 📌 How to Use This Dashboard:
-1. **Adjust Parameters**: Use the sidebar sliders to set your valuation parameters
-2. **Run Simulation**: Click 'Run Simulation' to perform Monte Carlo analysis
-3. **Sensitivity Analysis**: Explore how WACC and Growth Rate affect valuation
-4. **Interpret Results**: Use the statistics and visualizations to understand valuation ranges
-
-### 📈 Model Information:
-- **Valuation Method**: Discounted Cash Flow (DCF)
-- **Forecast Period**: 5 years
-- **Terminal Value**: Gordon Growth Model
-- **Simulation**: Monte Carlo with random parameter generation
-""")
-
 # Add export functionality
 if 'simulation_results' in st.session_state:
     st.markdown("---")
-    st.subheader("📥 Export Results")
+    st.subheader("Export Results")
     
     # Create DataFrame for export
     export_df = pd.DataFrame({
