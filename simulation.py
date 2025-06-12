@@ -1,262 +1,301 @@
 import streamlit as st
 import numpy as np
 import pandas as pd
+import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-import time
 
-# IMPORTANT: Set page config FIRST before any other st commands
-st.set_page_config(
-    page_title="Business Valuation Dashboard",
-    page_icon="📊",
-    layout="wide",
-    initial_sidebar_state="collapsed"
-)
 
-# Initialize session state
-if 'data_loaded' not in st.session_state:
-    st.session_state.data_loaded = False
-if 'show_full_app' not in st.session_state:
-    st.session_state.show_full_app = False
+# Set page configuration
+st.set_page_config(page_title="Business Valuation", layout="wide")
 
-# Lightweight CSS - minimal for fast loading
-st.markdown("""
-<style>
-    .main > div {padding-top: 2rem;}
-    .preview-box {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        padding: 3rem;
-        border-radius: 20px;
-        text-align: center;
-        color: white;
-        margin-bottom: 2rem;
-    }
-    .metric-card {
-        background: rgba(255,255,255,0.1);
-        padding: 1rem;
-        border-radius: 10px;
-        margin: 0.5rem;
-    }
-</style>
-""", unsafe_allow_html=True)
-
-@st.cache_data(ttl=3600)  # Cache for 1 hour
-def generate_quick_preview_data():
-    """Generate minimal data for preview - FAST"""
-    np.random.seed(42)
-    return {
-        'values': np.random.normal(100, 15, 500),  # Reduced from 1000
-        'mean': 100,
-        'std': 15
-    }
-
-def create_instant_preview():
-    """Ultra-fast preview that loads immediately"""
-    
-    # Header - loads instantly
-    st.markdown("""
-    <div class="preview-box">
-        <h1 style="font-size: 2.5rem; margin: 0;">📊 Business Valuation Dashboard</h1>
-        <p style="font-size: 1.2rem; opacity: 0.9;">DCF Valuation Simulator with Monte Carlo Analysis</p>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    # Quick metrics - no computation needed
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        st.metric("Expected Value", "$127.43M", "↑ 12.3%")
-    with col2:
-        st.metric("Confidence Range", "$95M - $159M")
-    with col3:
-        st.metric("Simulations", "10,000+")
-    
-    # Simple static chart for preview
-    data = generate_quick_preview_data()
-    
-    # Create simple histogram
-    fig = go.Figure()
-    fig.add_trace(go.Histogram(
-        x=data['values'],
-        nbinsx=20,  # Fewer bins for faster rendering
-        marker_color='rgba(102, 126, 234, 0.7)',
-        name='Valuation Distribution'
-    ))
-    
-    fig.update_layout(
-        title="Valuation Distribution Preview",
-        xaxis_title="Value ($M)",
-        yaxis_title="Frequency",
-        height=350,
-        template="plotly_white",
-        showlegend=False
-    )
-    
-    st.plotly_chart(fig, use_container_width=True)
-    
-    # Features grid
-    st.markdown("### ✨ Key Features")
-    feat_col1, feat_col2, feat_col3 = st.columns(3)
-    
-    with feat_col1:
-        st.markdown("""
-        <div class="metric-card">
-        <h4>📈 Monte Carlo</h4>
-        <p>10,000+ simulations with statistical analysis</p>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    with feat_col2:
-        st.markdown("""
-        <div class="metric-card">
-        <h4>🎯 Sensitivity</h4>
-        <p>Multi-parameter analysis with 3D visualization</p>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    with feat_col3:
-        st.markdown("""
-        <div class="metric-card">
-        <h4>📊 Export</h4>
-        <p>Download results in CSV/Excel format</p>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    # Launch button
-    st.markdown("<br>", unsafe_allow_html=True)
-    col1, col2, col3 = st.columns([1,2,1])
-    with col2:
-        if st.button("🚀 Launch Full Application", type="primary", use_container_width=True):
-            st.session_state.show_full_app = True
-            st.rerun()
-
+# Function to calculate enterprise value
 def s_ent_function(srevenue_0=100, sassets_0=80, swacc=0.12, sassets_to=1.3,
                    sgrowth=0.05, sgrowthstd=0.01, smargin=0.15,
                    smarginstd=0.03, sterminal_g=0.03, sterminalstd=0.01):
-    """DCF calculation function"""
+    
+    # Random generation of parameters
     margin = np.random.normal(smargin, smarginstd, 5)
     growth = np.random.normal(sgrowth, sgrowthstd, 5)
     terminal_g = np.random.normal(sterminal_g, sterminalstd, 1)[0]
     
+    # Revenue calculation
     revenue = srevenue_0 * np.cumprod(1 + growth)
+    
+    # NOPAT calculation
     nopat = revenue * margin
+    
+    # Assets calculation
     assets = revenue / sassets_to
     
+    # ROIC and investment rate for terminal value
     roic_5 = margin[4] * sassets_to
     inv_rate_5 = terminal_g / roic_5
     
+    # Net investment calculation
     net_inv = np.zeros(5)
     net_inv[0] = assets[0] - sassets_0
     net_inv[1:5] = np.diff(assets)
     net_inv[4] = nopat[4] * inv_rate_5
     
+    # Free cash flow to firm
     fcff = nopat - net_inv
+    
+    # Discount factors
     disc_factors = 1 / (1 + swacc) ** np.arange(1, 6)
     
+    # Terminal value
     terminal_value = (fcff[4] * (1 + terminal_g)) / (swacc - terminal_g)
     fcff[4] = fcff[4] + terminal_value
     
-    return np.sum(fcff * disc_factors)
+    # Enterprise value
+    ent_value = np.sum(fcff * disc_factors)
+    
+    return ent_value
 
-def run_full_application():
-    """Full application after preview"""
+# Streamlit app
+st.title("Business Valuation Dashboard")
+st.markdown("### Monte Carlo Simulation & Sensitivity Analysis")
+
+# Sidebar for inputs
+st.sidebar.header("Parameters")
+
+wacc = st.sidebar.slider("WACC:", min_value=0.08, max_value=0.16, value=0.12, step=0.01)
+growth = st.sidebar.slider("Growth Rate:", min_value=0.03, max_value=0.10, value=0.05, step=0.01)
+margin = st.sidebar.slider("Margin:", min_value=0.10, max_value=0.20, value=0.15, step=0.01)
+terminal_growth = st.sidebar.slider("Terminal Growth Rate:", min_value=0.02, max_value=0.06, value=0.03, step=0.01)
+
+# Additional parameters
+st.sidebar.markdown("### Additional Parameters")
+revenue_0 = st.sidebar.number_input("Initial Revenue:", value=100, min_value=10)
+assets_0 = st.sidebar.number_input("Initial Assets:", value=80, min_value=10)
+assets_to = st.sidebar.number_input("Assets Turnover:", value=1.3, min_value=0.5, max_value=3.0, step=0.1)
+
+# Volatility parameters
+st.sidebar.markdown("### Volatility Parameters")
+growth_std = st.sidebar.slider("Growth Std Dev:", min_value=0.005, max_value=0.02, value=0.01, step=0.001)
+margin_std = st.sidebar.slider("Margin Std Dev:", min_value=0.01, max_value=0.05, value=0.03, step=0.01)
+terminal_std = st.sidebar.slider("Terminal Growth Std Dev:", min_value=0.005, max_value=0.02, value=0.01, step=0.001)
+
+# Number of simulations
+n_simulations = st.sidebar.number_input("Number of Simulations:", value=10000, min_value=1000, max_value=100000, step=1000)
+
+# Run simulation button
+if st.sidebar.button("Run Simulation", type="primary"):
     
-    # Back button
-    if st.button("← Back to Preview"):
-        st.session_state.show_full_app = False
-        st.rerun()
+    # Progress bar
+    progress_bar = st.progress(0)
+    status_text = st.empty()
     
-    st.title("Business Valuation Dashboard")
-    st.markdown("### Full Monte Carlo Simulation & Sensitivity Analysis")
+    # Run Monte Carlo simulation
+    np.random.seed(42)  # For reproducibility
+    svalues = []
     
-    # Sidebar configuration
-    with st.sidebar:
-        st.header("📊 Parameters")
+    for i in range(n_simulations):
+        if i % 1000 == 0:
+            progress_bar.progress(i / n_simulations)
+            status_text.text(f'Running simulation {i}/{n_simulations}...')
         
-        st.subheader("Core Parameters")
-        wacc = st.slider("WACC", 0.08, 0.16, 0.12, 0.01)
-        growth = st.slider("Growth Rate", 0.03, 0.10, 0.05, 0.01)
-        margin = st.slider("Margin", 0.10, 0.20, 0.15, 0.01)
-        terminal_growth = st.slider("Terminal Growth", 0.02, 0.06, 0.03, 0.01)
-        
-        st.subheader("Additional Settings")
-        revenue_0 = st.number_input("Initial Revenue", 50, 500, 100)
-        assets_0 = st.number_input("Initial Assets", 40, 400, 80)
-        n_simulations = st.selectbox("Simulations", [1000, 5000, 10000, 50000], index=2)
-        
-        run_simulation = st.button("🚀 Run Simulation", type="primary", use_container_width=True)
+        value = s_ent_function(
+            srevenue_0=revenue_0,
+            sassets_0=assets_0,
+            swacc=wacc,
+            sassets_to=assets_to,
+            sgrowth=growth,
+            sgrowthstd=growth_std,
+            smargin=margin,
+            smarginstd=margin_std,
+            sterminal_g=terminal_growth,
+            sterminalstd=terminal_std
+        )
+        svalues.append(value)
     
-    # Main content
-    if run_simulation:
-        with st.spinner("Running simulation..."):
-            # Progress bar
-            progress = st.progress(0)
-            values = []
-            
-            # Run simulation with progress
-            for i in range(n_simulations):
-                if i % (n_simulations // 10) == 0:
-                    progress.progress(i / n_simulations)
-                
-                value = s_ent_function(
+    progress_bar.progress(1.0)
+    status_text.text('Simulation complete!')
+    
+    svalues = np.array(svalues)
+    
+    # Create two columns for layout
+    col1, col2 = st.columns([2, 1])
+    
+    with col1:
+        # Create density plot using Plotly
+        st.subheader("Valuation Distribution")
+        fig = go.Figure()
+        fig.add_trace(go.Histogram(
+            x=svalues,
+            histnorm='probability density',
+            name='Valuation',
+            nbinsx=50,
+            marker_color='skyblue'
+        ))
+        fig.update_layout(
+            xaxis_title="Valuation Value",
+            yaxis_title="Density",
+            showlegend=False,
+            height=400
+        )
+        st.plotly_chart(fig, use_container_width=True)
+    
+    with col2:
+        # Summary statistics
+        st.subheader("Summary Statistics")
+        summary_df = pd.DataFrame({
+            'Statistic': ['Count', 'Mean', 'Std Dev', 'Min', '25%', 'Median', '75%', 'Max'],
+            'Value': [
+                f"{len(svalues):,}",
+                f"{np.mean(svalues):.2f}",
+                f"{np.std(svalues):.2f}",
+                f"{np.min(svalues):.2f}",
+                f"{np.percentile(svalues, 25):.2f}",
+                f"{np.median(svalues):.2f}",
+                f"{np.percentile(svalues, 75):.2f}",
+                f"{np.max(svalues):.2f}"
+            ]
+        })
+        st.dataframe(summary_df, hide_index=True)
+        
+        # Additional metrics
+        st.metric("Expected Value", f"{np.mean(svalues):.2f}")
+        st.metric("95% Confidence Interval", 
+                 f"[{np.percentile(svalues, 2.5):.2f}, {np.percentile(svalues, 97.5):.2f}]")
+    
+    # Box plot
+    st.subheader("Valuation Box Plot")
+    fig_box = go.Figure()
+    fig_box.add_trace(go.Box(
+        y=svalues,
+        name='Valuation',
+        boxpoints='outliers',
+        marker_color='lightblue'
+    ))
+    fig_box.update_layout(
+        yaxis_title="Valuation Value",
+        showlegend=False,
+        height=300
+    )
+    st.plotly_chart(fig_box, use_container_width=True)
+    
+    # Store results in session state
+    st.session_state['simulation_results'] = svalues
+
+# Sensitivity Analysis Section
+st.markdown("---")
+st.header("Sensitivity Analysis")
+
+col3, col4 = st.columns(2)
+
+with col3:
+    st.subheader("WACC Range")
+    wacc_min = st.slider("Min WACC:", min_value=0.06, max_value=0.12, value=0.08, step=0.01)
+    wacc_max = st.slider("Max WACC:", min_value=0.12, max_value=0.20, value=0.16, step=0.01)
+    wacc_steps = st.slider("Number of Steps:", min_value=5, max_value=20, value=9)
+
+with col4:
+    st.subheader("Growth Rate Range")
+    growth_min = st.slider("Min Growth:", min_value=0.01, max_value=0.05, value=0.03, step=0.01)
+    growth_max = st.slider("Max Growth:", min_value=0.05, max_value=0.10, value=0.07, step=0.01)
+    growth_steps = st.slider("Number of Steps:", min_value=5, max_value=20, value=5)
+
+if st.button("Run Sensitivity Analysis", type="secondary"):
+    
+    # Create parameter grid
+    wacc_range = np.linspace(wacc_min, wacc_max, wacc_steps)
+    growth_range = np.linspace(growth_min, growth_max, growth_steps)
+    
+    # Matrix to store results
+    sensitivity_results = np.zeros((len(growth_range), len(wacc_range)))
+    
+    # Progress indicator
+    progress = st.progress(0)
+    total_iterations = len(wacc_range) * len(growth_range)
+    current_iteration = 0
+    
+    # Calculate valuations for each combination
+    for i, g in enumerate(growth_range):
+        for j, w in enumerate(wacc_range):
+            # Run a smaller simulation for each combination
+            temp_values = []
+            for _ in range(100):  # Reduced number for sensitivity analysis
+                temp_values.append(s_ent_function(
                     srevenue_0=revenue_0,
                     sassets_0=assets_0,
-                    swacc=wacc,
-                    sgrowth=growth,
+                    swacc=w,
+                    sassets_to=assets_to,
+                    sgrowth=g,
+                    sgrowthstd=growth_std,
                     smargin=margin,
-                    sterminal_g=terminal_growth
-                )
-                values.append(value)
-            
-            progress.progress(1.0)
-            values = np.array(values)
-            
-            # Display results
-            col1, col2 = st.columns([2, 1])
-            
-            with col1:
-                # Histogram
-                fig = go.Figure()
-                fig.add_trace(go.Histogram(
-                    x=values,
-                    nbinsx=50,
-                    marker_color='skyblue',
-                    name='Valuation'
+                    smarginstd=margin_std,
+                    sterminal_g=terminal_growth,
+                    sterminalstd=terminal_std
                 ))
-                fig.update_layout(
-                    title="Valuation Distribution",
-                    xaxis_title="Value ($M)",
-                    yaxis_title="Frequency",
-                    height=400
-                )
-                st.plotly_chart(fig, use_container_width=True)
+            sensitivity_results[i, j] = np.mean(temp_values)
             
-            with col2:
-                st.subheader("📊 Statistics")
-                st.metric("Mean", f"${np.mean(values):.2f}M")
-                st.metric("Std Dev", f"${np.std(values):.2f}M")
-                st.metric("Median", f"${np.median(values):.2f}M")
-                
-                # Download button
-                df = pd.DataFrame({'Valuation': values})
-                csv = df.to_csv(index=False)
-                st.download_button(
-                    "📥 Download Results",
-                    csv,
-                    "valuation_results.csv",
-                    "text/csv",
-                    use_container_width=True
-                )
-    else:
-        # Show instruction
-        st.info("👈 Configure parameters in the sidebar and click 'Run Simulation' to start")
+            current_iteration += 1
+            progress.progress(current_iteration / total_iterations)
+    
+    # Create heatmap
+    st.subheader("Sensitivity Heatmap: Valuation vs WACC and Growth Rate")
+    
+    fig_heatmap = go.Figure(data=go.Heatmap(
+        z=sensitivity_results,
+        x=[f"{w:.2%}" for w in wacc_range],
+        y=[f"{g:.2%}" for g in growth_range],
+        colorscale='Viridis',
+        text=[[f"{val:.0f}" for val in row] for row in sensitivity_results],
+        texttemplate="%{text}",
+        textfont={"size": 10},
+        hoverongaps=False
+    ))
+    
+    fig_heatmap.update_layout(
+        xaxis_title="WACC",
+        yaxis_title="Growth Rate",
+        height=500
+    )
+    
+    st.plotly_chart(fig_heatmap, use_container_width=True)
+    
+    # Create 3D surface plot
+    st.subheader("3D Surface Plot")
+    
+    X, Y = np.meshgrid(wacc_range, growth_range)
+    
+    fig_3d = go.Figure(data=[go.Surface(
+        x=X * 100,  # Convert to percentage
+        y=Y * 100,  # Convert to percentage
+        z=sensitivity_results,
+        colorscale='Viridis'
+    )])
+    
+    fig_3d.update_layout(
+        scene=dict(
+            xaxis_title='WACC (%)',
+            yaxis_title='Growth Rate (%)',
+            zaxis_title='Valuation'
+        ),
+        height=600
+    )
+    
+    st.plotly_chart(fig_3d, use_container_width=True)
 
-# MAIN APP LOGIC - This runs first
-def main():
-    if not st.session_state.show_full_app:
-        create_instant_preview()
-    else:
-        run_full_application()
-
-# Run app
-if __name__ == "__main__":
-    main()
+# Add export functionality
+if 'simulation_results' in st.session_state:
+    st.markdown("---")
+    st.subheader("Export Results")
+    
+    # Create DataFrame for export
+    export_df = pd.DataFrame({
+        'Simulation_Number': range(1, len(st.session_state['simulation_results']) + 1),
+        'Valuation': st.session_state['simulation_results']
+    })
+    
+    # Convert to CSV
+    csv = export_df.to_csv(index=False)
+    
+    st.download_button(
+        label="Download Simulation Results as CSV",
+        data=csv,
+        file_name='valuation_simulation_results.csv',
+        mime='text/csv'
+    )
