@@ -1,7 +1,14 @@
 [theme]
-base="dark"
-primaryColor="#c584f7"
-font="serif"
+base = "dark"
+primaryColor = "#c584f7"
+font = "serif"
+
+[server]
+enableCORS = false
+enableWebsocketCompression = false
 
 [browser]
 gatherUsageStats = false
+
+[client]
+showErrorDetails = false
