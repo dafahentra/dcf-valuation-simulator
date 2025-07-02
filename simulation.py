@@ -11,8 +11,8 @@ st.set_page_config(page_title="Business Valuation", layout="wide")
 
 # Function to calculate enterprise value
 def s_ent_function(srevenue_0=100, sassets_0=80, swacc=0.12, sassets_to=1.3,
-                   sgrowth=0.05, sgrowthstd=0.01, smargin=0.15,
-                   smarginstd=0.03, sterminal_g=0.03, sterminalstd=0.01):
+                    sgrowth=0.05, sgrowthstd=0.01, smargin=0.15,
+                    smarginstd=0.03, sterminal_g=0.03, sterminalstd=0.01):
     
     # Random generation of parameters
     margin = np.random.normal(smargin, smarginstd, 5)
@@ -158,7 +158,7 @@ if st.sidebar.button("Run Simulation", type="primary"):
         # Additional metrics
         st.metric("Expected Value", f"{np.mean(svalues):.2f}")
         st.metric("95% Confidence Interval", 
-                 f"[{np.percentile(svalues, 2.5):.2f}, {np.percentile(svalues, 97.5):.2f}]")
+                    f"[{np.percentile(svalues, 2.5):.2f}, {np.percentile(svalues, 97.5):.2f}]")
     
     # Box plot
     st.subheader("Valuation Box Plot")
